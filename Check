@@ -229,7 +229,7 @@
 
   <script>
     // ⚠️ นำลิงก์ Web App URL ที่ได้จากขั้นตอนการ Deploy ใน Google Apps Script มาวางที่นี่
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwKK9enLBc52JdvWBLWbrfW05uN6oh0k4CvV6aeT-QjkA0cWnF5LmkBlPOTkGPpANSS/exec";
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwAuFvmiYy9PKOxMvgsp2GAzqBkHUQcb9X4KNH1dLxl5DfjwRxjOFO7vTExU-F9NTgZ/exec";
 
     let html5QrCodeScanner = null;
     let videoTrack = null; 
