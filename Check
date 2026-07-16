@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>Check-Box App (Vercel)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Materialize CSS CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <!-- Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <!-- html5-qrcode library -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  
+  <style>
+    :root {
+      --primary-color: #008502;
+      --secondary-color: #3D6155;
+      --bg-color: #DEE8F2;
+    }
+    
+    body {
+      background-color: var(--bg-color);
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      padding-bottom: 70px;
+    }
+    
+    .app-header {
+      background-color: var(--primary-color);
+      color: #fff;
+      padding: 15px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .tab-nav-container {
+      background-color: #ffffff !important;
+      border-top: 1px solid #ccc;
+    }
+    
+    .tabs .tab a {
+      color: var(--secondary-color) !important;
+      font-weight: 600;
+    }
+    
+    .tabs .tab a:hover, .tabs .tab a.active {
+      color: var(--primary-color) !important;
+    }
+    
+    .tabs .indicator {
+      background-color: var(--primary-color) !important;
+    }
+    
+    .card {
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+      margin-top: 15px;
+    }
+    
+    .card-title-corporate {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--secondary-color);
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .card-title-corporate i {
+      margin-right: 8px;
+    }
+    
+    #scanner-wrapper {
+      position: relative;
+      background: #000;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 15px;
+      border: 3px solid var(--secondary-color);
+    }
+    
+    #reader {
+      width: 100%;
+    }
+    
+    .zoom-control {
+      background: #ffffff;
+      padding: 12px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      margin-bottom: 20px;
+    }
+    
+    .zoom-title {
+      font-weight: bold;
+      color: var(--secondary-color);
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+    }
+    
+    .btn-custom {
+      background-color: var(--primary-color) !important;
+      width: 100%;
+    }
+    
+    .loading-screen {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255, 255, 255, 0.8);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .badge-status {
+      background-color: #c62828;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading Screen -->
+  <div id="loading" class="loading-screen">
+    <div class="preloader-wrapper big active">
+      <div class="spinner-layer spinner-green-only">
+        <div class="circle-clipper left"><div class="circle"></div></div>
+        <div class="gap-patch"><div class="circle"></div></div>
+        <div class="circle-clipper right"><div class="circle"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-header">
+    <i class="material-icons" style="vertical-align: middle; margin-right: 5px;">check_box</i>Check-Box
+  </div>
+
+  <!-- Tabbar Layout -->
+  <div class="row" style="margin-bottom: 0;">
+    <div class="col s12" style="padding: 0;">
+      <ul class="tabs tab-nav-container z-depth-1">
+        <li class="tab col s6"><a class="active" href="#tab-scan"><i class="material-icons tiny" style="vertical-align: middle;">camera_alt</i> สแกนเบิกสินค้า</a></li>
+        <li class="tab col s6"><a href="#tab-history" onclick="fetchHistory()"><i class="material-icons tiny" style="vertical-align: middle;">history</i> ประวัติสต็อก</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Tab Content 1: Scan & Form -->
+  <div id="tab-scan" class="container">
+    <div class="card white">
+      <div class="card-content">
+        <span class="card-title-corporate">
+          <i class="material-icons">qr_code_scanner</i> กล้องสแกนคิวอาร์โค้ด
+        </span>
+        
+        <div id="scanner-wrapper">
+          <div id="reader"></div>
+        </div>
+        
+        <div class="zoom-control">
+          <div class="zoom-title">
+            <span><i class="material-icons tiny">zoom_in</i> ปรับระยะซูมเข้า-ออก</span>
+            <span id="zoom-display">1.0x</span>
+          </div>
+          <p class="range-field" style="margin: 5px 0 0 0;">
+            <input type="range" id="zoom-range" min="1" max="5" step="0.1" value="1" disabled />
+          </p>
+        </div>
+        
+        <form id="stockForm" onsubmit="handleFormSubmit(event)">
+          <div class="input-field">
+            <i class="material-icons prefix">vpn_key</i>
+            <input id="inventoryId" type="text" class="validate" required placeholder="รหัสสินค้าจากการสแกน">
+            <label for="inventoryId" class="active">Inventory ID</label>
+          </div>
+          
+          <div class="input-field">
+            <i class="material-icons prefix">exposure_plus_1</i>
+            <input id="qty" type="number" min="1" class="validate" value="1" required>
+            <label for="qty" class="active">จำนวน</label>
+          </div>
+          
+          <button type="submit" class="btn btn-custom waves-effect waves-light btn-large" style="margin-top: 10px;">
+            <i class="material-icons left">save</i> บันทึกรายการเบิกออก
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Content 2: History -->
+  <div id="tab-history" class="container">
+    <div class="card white">
+      <div class="card-content">
+        <span class="card-title-corporate">
+          <i class="material-icons">assignment</i> ประวัติความเคลื่อนไหวล่าสุด
+        </span>
+        
+        <table class="striped centered table-responsive">
+          <thead>
+            <tr>
+              <th>วัน-เวลา</th>
+              <th>Inventory ID</th>
+              <th>จำนวน</th>
+              <th>ประเภท</th>
+            </tr>
+          </thead>
+          <tbody id="history-table-body">
+            <tr>
+              <td colspan="4" class="grey-text">ไม่มีข้อมูลในประวัติระบบ...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Materialize JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+  <script>
+    // ⚠️ นำลิงก์ Web App URL ที่ได้จากขั้นตอนการ Deploy ใน Google Apps Script มาวางที่นี่
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwKK9enLBc52JdvWBLWbrfW05uN6oh0k4CvV6aeT-QjkA0cWnF5LmkBlPOTkGPpANSS/exec";
+
+    let html5QrCodeScanner = null;
+    let videoTrack = null; 
+
+    document.addEventListener("DOMContentLoaded", function() {
+      M.AutoInit();
+      startContinuousScanner();
+      document.getElementById('zoom-range').addEventListener('input', changeZoomLevel);
+    });
+
+    function showLoader(isVisible) {
+      document.getElementById('loading').style.display = isVisible ? 'flex' : 'none';
+    }
+
+    function startContinuousScanner() {
+      html5QrCodeScanner = new Html5Qrcode("reader");
+      const config = {
+        fps: 15,
+        qrbox: function(width, height) {
+          let minSize = Math.min(width, height);
+          let boxSize = Math.floor(minSize * 0.65);
+          return { width: boxSize, height: boxSize };
+        }
+      };
+
+      html5QrCodeScanner.start(
+        { facingMode: "environment" },
+        config,
+        onScanSuccess
+      ).then(() => {
+        checkZoomCapabilities();
+      }).catch(err => {
+        console.error("Camera error:", err);
+        M.toast({html: 'ไม่สามารถเปิดระบบกล้องได้: ' + err, classes: 'red'});
+      });
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+      M.toast({html: 'สแกนสำเร็จ: ' + decodedText, classes: 'green font-weight-bold'});
+      document.getElementById('inventoryId').value = decodedText;
+      M.updateTextFields();
+    }
+
+    document.getElementById('zoom-range').addEventListener('input', changeZoomLevel);
+
+    function checkZoomCapabilities() {
+      try {
+        const videoElement = document.querySelector("#reader video");
+        if (videoElement && videoElement.srcObject) {
+          const stream = videoElement.srcObject;
+          videoTrack = stream.getVideoTracks()[0];
+          const capabilities = videoTrack.getCapabilities();
+          
+          if (capabilities && 'zoom' in capabilities) {
+            const rangeSlider = document.getElementById('zoom-range');
+            rangeSlider.min = capabilities.zoom.min;
+            rangeSlider.max = capabilities.zoom.max;
+            rangeSlider.step = capabilities.zoom.step || 0.1;
+            rangeSlider.value = capabilities.zoom.current || 1;
+            rangeSlider.disabled = false;
+            
+            document.getElementById('zoom-display').innerText = Number(rangeSlider.value).toFixed(1) + "x";
+          }
+        }
+      } catch (err) {
+        console.log("ฮาร์ดแวร์ไม่รองรับฟังก์ชันซูมในเบราว์เซอร์นี้", err);
+      }
+    }
+
+    function changeZoomLevel(e) {
+      const zoomValue = e.target.value;
+      document.getElementById('zoom-display').innerText = Number(zoomValue).toFixed(1) + "x";
+      if (videoTrack) {
+        videoTrack.applyConstraints({
+          advanced: [{ zoom: zoomValue }]
+        }).catch(err => console.error("ไม่สามารถปรับค่าซูมไปยังกล้องได้", err));
+      }
+    }
+
+    // เรียก API ไปที่ GAS เพื่อดึงประวัติสต็อก
+    function fetchHistory() {
+      fetch(GAS_WEB_APP_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "getRecentHistory" })
+      })
+      .then(response => response.json())
+      .then(res => {
+        if (res.success) {
+          populateHistoryTable(res.history);
+        }
+      })
+      .catch(err => console.error("Error fetching history:", err));
+    }
+
+    function populateHistoryTable(dataList) {
+      const tbody = document.getElementById('history-table-body');
+      if (!dataList || dataList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="grey-text">ไม่มีข้อมูลธุรกรรมสต็อกในฐานข้อมูลขณะนี้</td></tr>';
+        return;
+      }
+      
+      let rows = '';
+      dataList.forEach(row => {
+        rows += `<tr>
+          <td>${row.timestamp}</td>
+          <td><strong>${row.inventoryId}</strong></td>
+          <td>${row.qty}</td>
+          <td><span class="badge-status">${row.type}</span></td>
+        </tr>`;
+      });
+      tbody.innerHTML = rows;
+    }
+
+    // บันทึกแบบส่งข้อมูลข้าม Domain (CORS Bypass via text POST)
+    function handleFormSubmit(event) {
+      event.preventDefault();
+      const inventoryId = document.getElementById('inventoryId').value.trim();
+      const qty = document.getElementById('qty').value;
+      
+      showLoader(true);
+      
+      fetch(GAS_WEB_APP_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "processStockOut",
+          inventoryId: inventoryId,
+          qty: qty
+        })
+      })
+      .then(response => response.json())
+      .then(res => {
+        showLoader(false);
+        if (res.success) {
+          M.toast({html: res.message, classes: 'green'});
+          document.getElementById('stockForm').reset();
+          M.updateTextFields();
+        } else {
+          M.toast({html: 'เกิดข้อผิดพลาด: ' + res.message, classes: 'red bold', displayLength: 4000});
+        }
+      })
+      .catch(err => {
+        showLoader(false);
+        M.toast({html: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้: ' + err, classes: 'red'});
+      });
+    }
+  </script>
+</body>
+</html>
